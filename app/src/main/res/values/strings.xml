@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Taverna</string>
+    <string name="search_panel_text_hint">Поиск товара</string>
+    <string name="price_on_map">Показать цены на карте</string>
+    <string name="title_activity_maps">Map</string>
+</resources>
