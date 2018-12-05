@@ -12,11 +12,22 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+
         <include
             layout="@layout/fragment_search_panel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+
+        <com.example.taverna.FlowLayout
+            android:id="@+id/search_result_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:paddingH="10"
+            app:paddingV="10" >
+
+
+        </com.example.taverna.FlowLayout>
 
         <ListView
             android:id="@+id/product_list"

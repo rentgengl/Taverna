@@ -19,17 +19,9 @@ public class ModelProduct {
 
     public String imageSmall_link;//Ссылка на маленькую основную привьюху
 
-
-
-    //Для создания нового товара
+//Для создания нового товара
     public int userID = 0;
     public String newComment;
-
-    //Удалить нах
-    public Bitmap imageSmall;//Загруженная маленькая основная превьюха
-    public String imageMedium_link;//Ссыль средняя основная превью
-    public String imageBig_link;//Ссыль большая основная превью
-
 
 
     //Конструктор класса по данным из json
@@ -37,7 +29,7 @@ public class ModelProduct {
 
         this.id = Integer.parseInt(nID);
         this.name = nName;
-        this.imageSmall = null;
+
     }
 
     public ModelProduct() {
@@ -73,5 +65,20 @@ public class ModelProduct {
         if (small !=null & small!="null"){
             imageSmall_link = small;
         }
+    }
+
+    public static HashMap<String,ArrayList> GetProductGroupListByName(String name){
+
+        HTTPService ConnectHTTP = new HTTPService();
+
+        try {
+            HashMap<String,ArrayList> res = ConnectHTTP.GetProductGroupListByName(name);
+            return res;
+        } catch (IOException e) {
+            //Хз в чем беда
+            return null;
+        }
+
+
     }
 }

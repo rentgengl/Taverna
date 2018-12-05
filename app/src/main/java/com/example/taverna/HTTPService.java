@@ -1,9 +1,5 @@
 package com.example.taverna;
 
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Log;
-
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.MultipartBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -16,8 +12,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -67,6 +61,55 @@ public class HTTPService {
 
     }
 
+    public HashMap<String, ArrayList> GetProductGroupListByName(String name) throws IOException {
+        OkHttpClient clientOk = new OkHttpClient();
+
+        ArrayList<ModelProduct> resProduct = new ArrayList<>();
+        ArrayList<ModelGroup> resGroup = new ArrayList<>();
+
+        //Подготовка HTTP запроса
+        String url = Constants.SERVICE_GET_PRODUCT_GROU_LIST_BY_NAME + "&name=" + name;
+        Request requestHTTP = new Request.Builder()
+                .url(url)
+                .build();
+        //Выполнение HTTP запроса
+        Response responseHTTP = clientOk.newCall(requestHTTP).execute();
+
+        //Если ответ не 200 верну пустую карту
+        if (!responseHTTP.isSuccessful()) {
+            return null;
+        }
+
+        //Читаю данные JSON
+        String jsonData = responseHTTP.body().string();
+        try {
+
+            JSONObject jData = new JSONObject(jsonData);
+
+            JSONArray jArrayPr = jData.getJSONArray("products");
+            JSONArray jArrayGr = jData.getJSONArray("groups");
+
+            for (int i = 0; i < jArrayPr.length()-1; i++) {
+                JSONObject object = jArrayPr.getJSONObject(i);
+                if (object!=null)
+                resProduct.add(GetProductByJObject(object));
+            }
+
+            for (int i = 0; i < jArrayGr.length(); i++) {
+                JSONObject object = jArrayGr.getJSONObject(i);
+                resGroup.add(GetGroupByJObject(object));
+            }
+            HashMap<String, ArrayList> result = new HashMap<>();
+            result.put("products", resProduct);
+            result.put("groups", resGroup);
+            return result;
+        } catch (JSONException e) {
+            return null;
+        }
+
+    }
+
+
     public ModelProductFull getTovarFullById(int idProduct) throws IOException {
 
         String url = Constants.SERVICE_GET_PRODUCTFULL_ID + "&id=" + idProduct;
@@ -79,7 +122,7 @@ public class HTTPService {
 
     }
 
-    private ModelProductFull getTovarFullByURL(String url) throws IOException{
+    private ModelProductFull getTovarFullByURL(String url) throws IOException {
 
         OkHttpClient clientOk = new OkHttpClient();
         //Подготовка HTTP запроса
@@ -106,7 +149,6 @@ public class HTTPService {
     }
 
 
-
     public boolean createNewProduct(ModelProduct newProduct) throws IOException {
         OkHttpClient clientOk = new OkHttpClient();
 
@@ -119,14 +161,6 @@ public class HTTPService {
 
 
         // Подготовка картинок для отправки
-        if (newProduct.imageBig_link != null) {
-            File sourceFile = new File(newProduct.imageBig_link);
-            reqData.addFormDataPart(
-                    "imageBig",
-                    "imageBig.png",
-                    RequestBody.create(MEDIA_TYPE_PNG, sourceFile));
-        }
-
         if (newProduct.imageSmall_link != null) {
             File sourceFile = new File(newProduct.imageSmall_link);
             reqData.addFormDataPart(
@@ -154,9 +188,6 @@ public class HTTPService {
         }
 
     }
-
-
-
 
     //Получить из JSON-объекта продукт
     ModelProduct GetProductByJObject(JSONObject jData) {
@@ -190,6 +221,21 @@ public class HTTPService {
         return res;
 
     }
+
+    ModelGroup GetGroupByJObject(JSONObject jData) {
+
+        ModelGroup res;
+        try {
+            res = new ModelGroup(
+                    jData.getInt("id"),
+                    jData.getString("name"));
+
+        } catch (JSONException e) {
+            return null;
+        }
+        return res;
+    }
+
 
     ModelProductFull GetProductFullByJObject(JSONObject jData) {
 
@@ -273,9 +319,9 @@ public class HTTPService {
     ModelMarket GetMarketByJObject(JSONObject jData) {
 
         ModelMarket res;
-        String name="";
-        String adress="";
-        String logo_link="";
+        String name = "";
+        String adress = "";
+        String logo_link = "";
 
 
         if (jData.has("name"))
@@ -302,10 +348,11 @@ public class HTTPService {
 
         res = new ModelMarket(name, adress, logo_link);
 
-        if (jData.has("latitude") & jData.has("longitude")){
+        if (jData.has("latitude") & jData.has("longitude")) {
             try {
-                res.setLatLng(jData.getDouble("latitude"),jData.getDouble("longitude"));
-            }catch (JSONException e){}
+                res.setLatLng(jData.getDouble("latitude"), jData.getDouble("longitude"));
+            } catch (JSONException e) {
+            }
         }
 
         return res;
@@ -375,7 +422,7 @@ public class HTTPService {
             res.put("EAN", product.EAN);
             res.put("price", product.price);
 
-            res.put("imageSmall", product.imageSmall);
+            //res.put("imageSmall", product.imageSmall);
 
             res.put("raiting", product.raiting);
             res.put("userID", product.userID);

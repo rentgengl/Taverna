@@ -17,6 +17,7 @@ public class Constants {
     public static final String SERVICE_GET_PRODUCTFULL_ID = HTTP_SERVER + "/GetProductFullById.php?";
     public static final String SERVICE_GET_PRODUCTFULL_EAN = HTTP_SERVER + "/GetProductFullByEAN.php?";
     public static final String SERVICE_GET_PRODUCT_LIST_BY_GROUP = HTTP_SERVER + "/GetProductListByGroup.php?";
+    public static final String SERVICE_GET_PRODUCT_GROU_LIST_BY_NAME = HTTP_SERVER + "/GetProductGroupListByName.php?";
     public static final String SERVICE_POST_NEW_PRODUCT = HTTP_SERVER + "/NewProduct.php";
 
     public static final String SERVER_PATH_IMAGE = "/img/";
