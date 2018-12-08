@@ -109,7 +109,6 @@ public class HTTPService {
 
     }
 
-
     public ModelProductFull getTovarFullById(int idProduct) throws IOException {
 
         String url = Constants.SERVICE_GET_PRODUCTFULL_ID + "&id=" + idProduct;
@@ -358,7 +357,6 @@ public class HTTPService {
         return res;
 
     }
-
 
     ArrayList<ModelComment> GetCommentListByJObject(JSONArray Jarray) throws JSONException {
 

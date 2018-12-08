@@ -1,8 +1,11 @@
 package com.example.taverna;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import java.util.ArrayList;
 
-public class ModelComment {
+public class ModelComment implements Parcelable {
     public ModelUser user;
     public String comment;
     public float raiting = 0;
@@ -38,4 +41,38 @@ public class ModelComment {
         return res;
 
     }
+
+
+    protected ModelComment(Parcel in) {
+        user = (ModelUser) in.readValue(ModelUser.class.getClassLoader());
+        comment = in.readString();
+        raiting = in.readFloat();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeValue(user);
+        dest.writeString(comment);
+        dest.writeFloat(raiting);
+    }
+
+    @SuppressWarnings("unused")
+    public static final Parcelable.Creator<ModelComment> CREATOR = new Parcelable.Creator<ModelComment>() {
+        @Override
+        public ModelComment createFromParcel(Parcel in) {
+            return new ModelComment(in);
+        }
+
+        @Override
+        public ModelComment[] newArray(int size) {
+            return new ModelComment[size];
+        }
+    };
+
+
 }

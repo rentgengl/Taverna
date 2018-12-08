@@ -1,15 +1,16 @@
 package com.example.taverna;
 
-import android.graphics.Bitmap;
 
-public class ModelMarket {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class ModelMarket implements Parcelable {
     public String name;
     public String city;
     public String id;
     public String adress;
     public double latitude;
     public double longitude;
-    public Bitmap logo;
     public String logo_link;
 
 
@@ -44,4 +45,44 @@ public class ModelMarket {
 
         return res;
     }
+
+    protected ModelMarket(Parcel in) {
+        name = in.readString();
+        city = in.readString();
+        id = in.readString();
+        adress = in.readString();
+        latitude = in.readDouble();
+        longitude = in.readDouble();
+        logo_link = in.readString();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(name);
+        dest.writeString(city);
+        dest.writeString(id);
+        dest.writeString(adress);
+        dest.writeDouble(latitude);
+        dest.writeDouble(longitude);
+        dest.writeString(logo_link);
+    }
+
+    @SuppressWarnings("unused")
+    public static final Parcelable.Creator<ModelMarket> CREATOR = new Parcelable.Creator<ModelMarket>() {
+        @Override
+        public ModelMarket createFromParcel(Parcel in) {
+            return new ModelMarket(in);
+        }
+
+        @Override
+        public ModelMarket[] newArray(int size) {
+            return new ModelMarket[size];
+        }
+    };
+
 }

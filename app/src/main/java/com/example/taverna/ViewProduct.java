@@ -1,16 +1,11 @@
 package com.example.taverna;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.DrawableRes;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -29,7 +24,6 @@ import com.daimajia.slider.library.Tricks.ViewPagerEx;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class ViewProduct extends AppCompatActivity implements BaseSliderView.OnSliderClickListener, ViewPagerEx.OnPageChangeListener {
 
@@ -42,11 +36,8 @@ public class ViewProduct extends AppCompatActivity implements BaseSliderView.OnS
 
         setContentView(R.layout.activity_product);
 
-        //Получение данных о товаре по ID или EAN
-        AsyncModelProduct myProduct = new AsyncModelProduct();
-        myProduct.setMyView(this);
-        myProduct.execute(getIntent());
-
+        thisProductFull = (ModelProductFull) getIntent().getParcelableExtra("object");
+        onGetData(thisProductFull);
         final Button button = findViewById(R.id.show_price_on_map);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -94,7 +85,7 @@ public class ViewProduct extends AppCompatActivity implements BaseSliderView.OnS
                 TextSliderView textSliderView = new TextSliderView(this);
                 // initialize a SliderLayout
                 textSliderView
-                        .image(link)
+                        .image(Constants.SERVICE_GET_IMAGE + link)
                         .setOnSliderClickListener(this)
                         .setScaleType(BaseSliderView.ScaleType.CenterInside);
 
@@ -123,6 +114,37 @@ public class ViewProduct extends AppCompatActivity implements BaseSliderView.OnS
         mDemoSlider.setCustomAnimation(new DescriptionAnimation());
         mDemoSlider.stopAutoCycle();
         mDemoSlider.addOnPageChangeListener(this);
+
+
+        //Накину данные продукта на форму
+        TextView view_midPrice = this.findViewById(R.id.midPrice);//Средняя цена
+        TextView view_productName = this.findViewById(R.id.productName);//Наименование
+        TextView view_lowPrice = this.findViewById(R.id.lowPrice);//Разброс цен
+        TextView view_textRaiting = this.findViewById(R.id.textRaiting);//Рейтинг текстом
+        RatingBar view_productRaiting = this.findViewById(R.id.productRaiting);//Рейтинг
+
+        ListView view_price_list = this.findViewById(R.id.price_list);
+        ListView view_comment_list = this.findViewById(R.id.comment_list);
+
+        // заполняем View в пункте списка данными из товаров: наименование, цена
+        // и картинка
+        view_productName.setText(product.name);
+        view_productName.setTag(product.id);
+        view_midPrice.setText(product.price + "\u20BD");
+
+        view_lowPrice.setText("от " + product.price_min + " до " + product.price_max + "\u20BD");
+        view_textRaiting.setText(product.raiting + " из 5");
+        view_productRaiting.setRating(product.raiting);
+
+        //Вывод списков
+        if (product.prices != null) {
+            PriceListAdapter priceAdapter = new PriceListAdapter(this, product.prices);
+            view_price_list.setAdapter(priceAdapter);
+        }
+        if (product.comments != null) {
+            CommentListAdapter commentAdapter = new CommentListAdapter(this, product.comments);
+            view_comment_list.setAdapter(commentAdapter);
+        }
 
     }
 
@@ -153,202 +175,131 @@ public class ViewProduct extends AppCompatActivity implements BaseSliderView.OnS
     public void onPageScrollStateChanged(int state) {
     }
 
-    //Асинхронная загрузка данных
-    private class AsyncModelProduct extends AsyncTask<Intent, Void, ModelProductFull> {
+    //Адаптеры списков
+    private class CommentListAdapter extends BaseAdapter {
+        Context ctx;
+        LayoutInflater lInflater;
+        ArrayList<ModelComment> objects;
 
-        public ViewProduct myView;
-
-        public void setMyView(ViewProduct myView) {
-            this.myView = myView;
+        CommentListAdapter(Context context, ArrayList<ModelComment> comments) {
+            ctx = context;
+            objects = comments;
+            lInflater = (LayoutInflater) ctx
+                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         }
 
+        // кол-во элементов
         @Override
-        protected ModelProductFull doInBackground(Intent... params) {
-
-            Intent openIntent = params[0];
-            switch (openIntent.getStringExtra("methodSearch")) {
-                case Constants.SEARCH_METHOD_BY_ID:
-                    return ModelProductFull.getProductByID(openIntent.getIntExtra("dataSearch", 0));
-
-                case Constants.SEARCH_METHOD_BY_EAN:
-                    return ModelProductFull.getProductByEAN(openIntent.getStringExtra("dataSearch"));
-
-                default:
-                    return null;
-            }
+        public int getCount() {
+            return objects.size();
         }
 
-
+        // элемент по позиции
         @Override
-        protected void onPostExecute(ModelProductFull result) {
-            super.onPostExecute(result);
-
-            if (result == null) {
-                return;
-            }
-            //Накину данные продукта на форму
-            TextView view_midPrice = myView.findViewById(R.id.midPrice);//Средняя цена
-            TextView view_productName = myView.findViewById(R.id.productName);//Наименование
-            TextView view_lowPrice = myView.findViewById(R.id.lowPrice);//Разброс цен
-            TextView view_textRaiting = myView.findViewById(R.id.textRaiting);//Рейтинг текстом
-            RatingBar view_productRaiting = myView.findViewById(R.id.productRaiting);//Рейтинг
-
-            ListView view_price_list = myView.findViewById(R.id.price_list);
-            ListView view_comment_list = myView.findViewById(R.id.comment_list);
-
-            // заполняем View в пункте списка данными из товаров: наименование, цена
-            // и картинка
-            view_productName.setText(result.name);
-            view_productName.setTag(result.id);
-            view_midPrice.setText(result.price + "\u20BD");
-
-            view_lowPrice.setText("от " + result.price_min + " до " + result.price_max + "\u20BD");
-            view_textRaiting.setText(result.raiting + " из 5");
-            view_productRaiting.setRating(result.raiting);
-
-
-            //Вывод списков
-            if (result.prices != null) {
-                PriceListAdapter priceAdapter = new PriceListAdapter(myView, result.prices);
-                view_price_list.setAdapter(priceAdapter);
-            }
-            if (result.comments != null) {
-                CommentListAdapter commentAdapter = new CommentListAdapter(myView, result.comments);
-                view_comment_list.setAdapter(commentAdapter);
-            }
-            myView.onGetData(result);
-
-
+        public Object getItem(int position) {
+            return objects.get(position);
         }
 
+        // id по позиции
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
 
-        //Адаптеры списков
-        private class CommentListAdapter extends BaseAdapter {
-            Context ctx;
-            LayoutInflater lInflater;
-            ArrayList<ModelComment> objects;
-
-            CommentListAdapter(Context context, ArrayList<ModelComment> comments) {
-                ctx = context;
-                objects = comments;
-                lInflater = (LayoutInflater) ctx
-                        .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        // пункт списка
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            // используем созданные, но не используемые view
+            View view = convertView;
+            if (view == null) {
+                view = lInflater.inflate(R.layout.fragment_list_comment, parent, false);
             }
 
-            // кол-во элементов
-            @Override
-            public int getCount() {
-                return objects.size();
-            }
+            ModelComment obj = getObj(position);
 
-            // элемент по позиции
-            @Override
-            public Object getItem(int position) {
-                return objects.get(position);
-            }
+            TextView view_user_comment = view.findViewById(R.id.user_comment);
+            TextView view_user_name = view.findViewById(R.id.user_name);
+            TextView view_user_raiting_text = view.findViewById(R.id.user_raiting_text);
+            RatingBar view_user_raiting = view.findViewById(R.id.user_raiting);
 
-            // id по позиции
-            @Override
-            public long getItemId(int position) {
-                return position;
-            }
-
-            // пункт списка
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                // используем созданные, но не используемые view
-                View view = convertView;
-                if (view == null) {
-                    view = lInflater.inflate(R.layout.fragment_list_comment, parent, false);
-                }
-
-                ModelComment obj = getObj(position);
-
-                TextView view_user_comment = view.findViewById(R.id.user_comment);
-                TextView view_user_name = view.findViewById(R.id.user_name);
-                TextView view_user_raiting_text = view.findViewById(R.id.user_raiting_text);
-                RatingBar view_user_raiting = view.findViewById(R.id.user_raiting);
-
-                view_user_comment.setText(obj.comment);
+            view_user_comment.setText(obj.comment);
+            if (obj.user != null)
                 view_user_name.setText(obj.user.name);
-                view_user_raiting_text.setText(obj.raiting + " из 5");
-                view_user_raiting.setRating(obj.raiting);
+            view_user_raiting_text.setText(obj.raiting + " из 5");
+            view_user_raiting.setRating(obj.raiting);
 
-                return view;
-            }
-
-            ModelComment getObj(int position) {
-                return ((ModelComment) getItem(position));
-            }
+            return view;
         }
 
-        private class PriceListAdapter extends BaseAdapter {
-            Context ctx;
-            LayoutInflater lInflater;
-            ArrayList<ModelPrice> objects;
+        ModelComment getObj(int position) {
+            return ((ModelComment) getItem(position));
+        }
+    }
 
-            PriceListAdapter(Context context, ArrayList<ModelPrice> products) {
-                ctx = context;
-                objects = products;
-                lInflater = (LayoutInflater) ctx
-                        .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            }
+    private class PriceListAdapter extends BaseAdapter {
+        Context ctx;
+        LayoutInflater lInflater;
+        ArrayList<ModelPrice> objects;
 
-            // кол-во элементов
-            @Override
-            public int getCount() {
-                return objects.size();
-            }
-
-            // элемент по позиции
-            @Override
-            public Object getItem(int position) {
-                return objects.get(position);
-            }
-
-            // id по позиции
-            @Override
-            public long getItemId(int position) {
-                return position;
-            }
-
-            // пункт списка
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                // используем созданные, но не используемые view
-                View view = convertView;
-                if (view == null) {
-                    view = lInflater.inflate(R.layout.fragment_list_price, parent, false);
-                }
-
-                ModelPrice obj = getObj(position);
-
-                TextView view_magazinName = view.findViewById(R.id.magazinName);
-                TextView view_magazinAdres = view.findViewById(R.id.magazinAdres);
-                TextView view_magazinPrice = view.findViewById(R.id.magazinPrice);
-                ImageView view_imageLogo = view.findViewById(R.id.imageLogo);
-
-                view_magazinName.setText(obj.market.name);
-                view_magazinAdres.setText(obj.market.adress);
-                view_magazinPrice.setText(obj.price + "\u20BD");
-
-                if (obj.market.logo_link != null) {
-                    Picasso.with(ctx)
-                            .load(obj.market.logo_link)
-                            .placeholder(R.drawable.noimage_small)
-                            .error(R.drawable.noimage_small)
-                            .into(view_imageLogo);
-                }
-
-                return view;
-            }
-
-            ModelPrice getObj(int position) {
-                return ((ModelPrice) getItem(position));
-            }
-
+        PriceListAdapter(Context context, ArrayList<ModelPrice> products) {
+            ctx = context;
+            objects = products;
+            lInflater = (LayoutInflater) ctx
+                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         }
 
+        // кол-во элементов
+        @Override
+        public int getCount() {
+            return objects.size();
+        }
+
+        // элемент по позиции
+        @Override
+        public Object getItem(int position) {
+            return objects.get(position);
+        }
+
+        // id по позиции
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        // пункт списка
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            // используем созданные, но не используемые view
+            View view = convertView;
+            if (view == null) {
+                view = lInflater.inflate(R.layout.fragment_list_price, parent, false);
+            }
+
+            ModelPrice obj = getObj(position);
+
+            TextView view_magazinName = view.findViewById(R.id.magazinName);
+            TextView view_magazinAdres = view.findViewById(R.id.magazinAdres);
+            TextView view_magazinPrice = view.findViewById(R.id.magazinPrice);
+            ImageView view_imageLogo = view.findViewById(R.id.imageLogo);
+
+            view_magazinName.setText(obj.market.name);
+            view_magazinAdres.setText(obj.market.adress);
+            view_magazinPrice.setText(obj.price + "\u20BD");
+
+            if (obj.market.logo_link != null) {
+                Picasso.with(ctx)
+                        .load(Constants.SERVICE_GET_IMAGE + obj.market.logo_link)
+                        .placeholder(R.drawable.noimage_small)
+                        .error(R.drawable.noimage_small)
+                        .into(view_imageLogo);
+            }
+
+            return view;
+        }
+
+        ModelPrice getObj(int position) {
+            return ((ModelPrice) getItem(position));
+        }
 
     }
 

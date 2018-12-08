@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcel;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -27,7 +28,12 @@ import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class ViewProductList extends Activity implements View.OnClickListener {
 
@@ -43,10 +49,8 @@ public class ViewProductList extends Activity implements View.OnClickListener {
 
         EditText searchText = this.findViewById(R.id.search_panel_text);
         searchText.setOnKeyListener(new OnKeyPress());
-        //Подгрузка списка товаров
-        AsyncListModelProduct asyncGetProductList = new AsyncListModelProduct();
-        asyncGetProductList.setMyView(this);
-        asyncGetProductList.execute("1");
+        //Подгрузка списка товаров первой группы
+        showProductListByGroup(1);
 
     }
 
@@ -55,38 +59,119 @@ public class ViewProductList extends Activity implements View.OnClickListener {
         if (v.getId() == R.id.search_panel_button) {
             EditText searchText = findViewById(R.id.search_panel_text);
 
-            Intent intent = new Intent(this, ViewProduct.class);
-            intent.putExtra("methodSearch", Constants.SEARCH_METHOD_BY_EAN);
-            intent.putExtra("dataSearch", searchText.getText().toString());
-            startActivity(intent);
-        } else {
+            showProductDetailByEAN(searchText.getText().toString());
 
+        } else {
+            //Клик по группе
             //Подгрузка списка товаров
-            AsyncListModelProduct asyncGetProductList = new AsyncListModelProduct();
-            asyncGetProductList.setMyView(this);
-            asyncGetProductList.execute(Integer.toString((int) v.getTag()));
+            int idGroup = (int) v.getTag();
+            showProductListByGroup(idGroup);
         }
 
     }
 
     public void onClickProductList(int idProduct) {
 
+        showProductDetailById(idProduct);
+
+    }
+
+    private void showProductDetailById(int id){
+
+        DataApi mDataApi = SingletonRetrofit.getInstance().getDataApi();
+        Call<ModelProductFull> serviceCall = mDataApi.getProductFullById(id);
+        serviceCall.enqueue(new Callback<ModelProductFull>() {
+            @Override
+            public void onResponse(Call<ModelProductFull> call, Response<ModelProductFull> response) {
+                ModelProductFull ss = response.body();
+                showProductDetail(ss);
+            }
+
+            @Override
+            public void onFailure(Call<ModelProductFull> call, Throwable t) {
+                showErrorSearch();
+            }
+        });
+
+    }
+
+    private void showProductDetailByEAN(String EAN){
+
+        DataApi mDataApi = SingletonRetrofit.getInstance().getDataApi();
+        Call<ModelProductFull> serviceCall = mDataApi.getProductFullByEAN(EAN);
+        serviceCall.enqueue(new Callback<ModelProductFull>() {
+            @Override
+            public void onResponse(Call<ModelProductFull> call, Response<ModelProductFull> response) {
+                ModelProductFull ss = response.body();
+                showProductDetail(ss);
+            }
+
+            @Override
+            public void onFailure(Call<ModelProductFull> call, Throwable t) {
+                showErrorSearch();
+            }
+        });
+
+    }
+
+    private void showProductDetail(ModelProductFull prod){
+
         Intent intent = new Intent(this, ViewProduct.class);
-        intent.putExtra("methodSearch", Constants.SEARCH_METHOD_BY_ID);
-        intent.putExtra("dataSearch", idProduct);
+        intent.putExtra("object", prod);
         startActivity(intent);
+
+    }
+
+
+    private void serchByName(String name) {
+
+        //Подгрузка списка товаров
+        /*
+        AsyncListModelProductByName asyncGetProductList = new AsyncListModelProductByName();
+        asyncGetProductList.setMyView(this);
+        asyncGetProductList.execute(name);
+        */
+        DataApi mDataApi = SingletonRetrofit.getInstance().getDataApi();
+        Call<ModelSearchResult> serviceCall = mDataApi.getProductGroupListByName(name);
+        serviceCall.enqueue(new Callback<ModelSearchResult>() {
+            @Override
+            public void onResponse(Call<ModelSearchResult> call, Response<ModelSearchResult> response) {
+                ModelSearchResult ss = response.body();
+                showGroupList(ss.getGroups());
+                showProductList(ss.getProducts());
+            }
+
+            @Override
+            public void onFailure(Call<ModelSearchResult> call, Throwable t) {
+                showErrorSearch();
+            }
+        });
 
 
     }
 
-    private void serchByName(String name) {
+    private void showProductListByGroup(int idGroup){
 
-//Подгрузка списка товаров
-        AsyncListModelProductByName asyncGetProductList = new AsyncListModelProductByName();
-        asyncGetProductList.setMyView(this);
-        asyncGetProductList.execute(name);
+        DataApi mDataApi = SingletonRetrofit.getInstance().getDataApi();
+        Call<List<ModelProduct>> serviceCall = mDataApi.getProductListByGroup(idGroup);
+        serviceCall.enqueue(new Callback<List<ModelProduct>>() {
+            @Override
+            public void onResponse(Call<List<ModelProduct>> call, Response<List<ModelProduct>> response) {
+                List<ModelProduct> ss = response.body();
+                showProductList(ss);
+            }
 
+            @Override
+            public void onFailure(Call<List<ModelProduct>> call, Throwable t) {
+                showErrorSearch();
+            }
+        });
 
+    }
+
+    public void showErrorSearch() {
+        Toast mt = Toast.makeText(this,"Ничего не найдено", Toast.LENGTH_LONG);
+        mt.show();
     }
 
     private class OnKeyPress implements View.OnKeyListener {
@@ -105,128 +190,56 @@ public class ViewProductList extends Activity implements View.OnClickListener {
         }
     }
 
-    //Класс асинхронного получения списка
-    private class AsyncListModelProduct extends AsyncTask<String, Void, ArrayList<ModelProduct>> {
+    public void showGroupList(List<ModelGroup> groupList){
+        FlowLayout resultGroup = findViewById(R.id.search_result_group);
+        //Подчищу старые теги групп
+        resultGroup.removeAllViews();
+        for (ModelGroup strGr : groupList) {
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 25, getResources().getDisplayMetrics()));
 
-        public ViewProductList myView;
-
-        public void setMyView(ViewProductList myView) {
-            this.myView = myView;
+            Button nButton = new Button(this, null, R.style.Widget_AppCompat_Button_Borderless);
+            nButton.setHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics()));
+            nButton.setLayoutParams(layoutParams);
+            nButton.setTextColor(getResources().getColor(R.color.colorTextGroupResultSearch));
+            nButton.setGravity(Gravity.CENTER);
+            nButton.setAllCaps(false);
+            nButton.setBackgroundResource(R.drawable.search_result_group);
+            nButton.setText(strGr.name);
+            nButton.setOnClickListener(this);
+            nButton.setTag(strGr.id);
+            resultGroup.addView(nButton);
         }
-
-        //Процедура получения данных
-        @Override
-        protected ArrayList<ModelProduct> doInBackground(String... idGroups) {
-
-            return ModelProduct.GetProductListByGroup(idGroups[0]);
-
-        }
-
-        //Обработчик завершения
-        @Override
-        protected void onPostExecute(ArrayList<ModelProduct> result) {
-            super.onPostExecute(result);
-
-            // данные получены
-
-            // создаем адаптер
-            ProductListAdapter productListAdapter;
-            productListAdapter = new ProductListAdapter(myView.getApplicationContext(), result);
-
-            // настраиваем список
-            ListView myList = (ListView) myView.findViewById(R.id.product_list);
-            myList.setAdapter(productListAdapter);
-
-            myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View itemClicked, int position,
-                                        long id) {
-
-                    myView.onClickProductList((int) itemClicked.findViewById(R.id.productName).getTag());
-
-                }
-            });
-        }
-
     }
 
-    //Асинхронный поиск по наименованию
-    private class AsyncListModelProductByName extends AsyncTask<String, Void, HashMap<String, ArrayList>> {
+    public void showProductList(List<ModelProduct> productList){
+        // создаем адаптер
+        ProductListAdapter productListAdapter;
+        productListAdapter = new ProductListAdapter(this.getApplicationContext(), productList);
 
-        public ViewProductList myView;
+        // настраиваем список
+        ListView myList = (ListView) this.findViewById(R.id.product_list);
+        myList.setAdapter(productListAdapter);
 
-        public void setMyView(ViewProductList myView) {
-            this.myView = myView;
-        }
+        myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View itemClicked, int position,
+                                    long id) {
 
-        //Процедура получения данных
-        @Override
-        protected HashMap<String, ArrayList> doInBackground(String... names) {
+                onClickProductList((int) itemClicked.findViewById(R.id.productName).getTag());
 
-            return ModelProduct.GetProductGroupListByName(names[0]);
-
-        }
-
-        //Обработчик завершения
-        @Override
-        protected void onPostExecute(HashMap<String, ArrayList> result) {
-            super.onPostExecute(result);
-
-            if (result == null) {
-                Toast mt = Toast.makeText(myView, "Ничего не найдено", Toast.LENGTH_LONG);
-                mt.show();
-                return;
             }
-            // создаем адаптер
-            ProductListAdapter productListAdapter;
-            productListAdapter = new ProductListAdapter(myView.getApplicationContext(), result.get("products"));
-
-            // настраиваем список
-            ListView myList = (ListView) myView.findViewById(R.id.product_list);
-            myList.setAdapter(productListAdapter);
-
-            myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View itemClicked, int position,
-                                        long id) {
-                    myView.onClickProductList((int) itemClicked.findViewById(R.id.productName).getTag());
-                }
-            });
-
-            FlowLayout resultGroup = findViewById(R.id.search_result_group);
-            //Подчищу старые теги групп
-            resultGroup.removeAllViews();
-            for (ModelGroup strGr : (ArrayList<ModelGroup>) result.get("groups")) {
-                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 25, getResources().getDisplayMetrics()));
-
-                Button nButton = new Button(myView, null, R.style.Widget_AppCompat_Button_Borderless);
-                nButton.setHeight((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 28, getResources().getDisplayMetrics()));
-                nButton.setLayoutParams(layoutParams);
-                nButton.setTextColor(getResources().getColor(R.color.colorTextGroupResultSearch));
-                nButton.setGravity(Gravity.CENTER);
-                nButton.setAllCaps(false);
-                nButton.setBackgroundResource(R.drawable.search_result_group);
-                nButton.setText(strGr.name);
-                nButton.setOnClickListener(myView);
-                nButton.setTag(strGr.id);
-                resultGroup.addView(nButton);
-            }
-
-
-        }
-
+        });
     }
-
 
     //Класс адаптера для списка товара
     private class ProductListAdapter extends BaseAdapter {
         Context ctx;
         LayoutInflater lInflater;
-        ArrayList<ModelProduct> objects;
+        List<ModelProduct> objects;
 
-        ProductListAdapter(Context context, ArrayList<ModelProduct> products) {
+        ProductListAdapter(Context context, List<ModelProduct> products) {
             ctx = context;
             objects = products;
             lInflater = (LayoutInflater) ctx
@@ -284,7 +297,7 @@ public class ViewProductList extends Activity implements View.OnClickListener {
             } else {
 
                 Picasso.with(ctx)
-                        .load(p.imageSmall_link)
+                        .load(Constants.SERVICE_GET_IMAGE + p.imageSmall_link)
                         .placeholder(R.drawable.noimage_small)
                         .error(R.drawable.noimage_small)
                         .into(pictire);
