@@ -1,6 +1,7 @@
 package com.example.taverna;
 
 import android.graphics.Bitmap;
+import android.support.v7.util.DiffUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,4 +49,21 @@ public class ModelProduct {
             imageSmall_link = small;
         }
     }
+
+    //Проверка на изменение позиции
+    public static final DiffUtil.ItemCallback<ModelProduct> DIFF_CALLBACK = new DiffUtil.ItemCallback<ModelProduct>() {
+
+        // Check if items represent the same thing.
+        @Override
+        public boolean areItemsTheSame(ModelProduct oldItem, ModelProduct newItem) {
+            return oldItem.id == newItem.id;
+        }
+
+        // Checks if the item contents have changed.
+        @Override
+        public boolean areContentsTheSame(ModelProduct oldItem, ModelProduct newItem) {
+            return true; // Assume Repository details don't change
+        }
+    };
+
 }

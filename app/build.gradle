@@ -49,6 +49,9 @@ dependencies {
     //Работа с HTTP-сервисами через ретрофит
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+
+    implementation "android.arch.paging:runtime:1.0.0"
+
 }
 
 apply plugin: 'com.google.gms.google-services'

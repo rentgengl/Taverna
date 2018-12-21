@@ -26,17 +26,16 @@
             app:paddingH="10"
             app:paddingV="10" >
 
-
         </com.example.taverna.FlowLayout>
 
-        <ListView
-            android:id="@+id/product_list"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:layout_editor_absoluteX="384dp">
 
-        </ListView>
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/productRW"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
     </LinearLayout>
+
+
 
 </android.support.constraint.ConstraintLayout>
